@@ -49,7 +49,7 @@ Given that this example article is in Markdown format, save it as
 Generate your site
 ------------------
 
-From your project directory, run the ``pelican`` command to generate your site::
+From your site directory, run the ``pelican`` command to generate your site::
 
     pelican content
 
@@ -61,10 +61,10 @@ Preview your site
 -----------------
 
 Open a new terminal session and run the following commands to switch to your
-``output`` directory and launch Python's built-in web server::
+``output`` directory and launch Pelican's web server::
 
     cd ~/projects/yoursite/output
-    python -m SimpleHTTPServer
+    python -m pelican.server
 
 Preview your site by navigating to http://localhost:8000/ in your browser.
 

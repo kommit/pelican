@@ -22,7 +22,8 @@ from jinja2 import (Environment, FileSystemLoader, PrefixLoader, ChoiceLoader,
 from pelican.contents import Article, Draft, Page, Static, is_valid_content
 from pelican.readers import Readers
 from pelican.utils import (copy, process_translations, mkdir_p, DateFormatter,
-                           FileStampDataCacher, python_2_unicode_compatible)
+                           FileStampDataCacher, python_2_unicode_compatible,
+                           posixize_path)
 from pelican import signals
 
 
@@ -160,7 +161,7 @@ class Generator(object):
         (For example, one that was missing mandatory metadata.)
         The path argument is expected to be relative to self.path.
         """
-        self.context['filenames'][os.path.normpath(path)] = None
+        self.context['filenames'][posixize_path(os.path.normpath(path))] = None
 
     def _is_potential_source_path(self, path):
         """Return True if path was supposed to be used as a source file.
@@ -168,7 +169,7 @@ class Generator(object):
         before this method is called, even if they failed to process.)
         The path argument is expected to be relative to self.path.
         """
-        return os.path.normpath(path) in self.context['filenames']
+        return posixize_path(os.path.normpath(path)) in self.context['filenames']
 
     def _update_context(self, items):
         """Update the context with the given items from the currrent
@@ -350,7 +351,8 @@ class ArticlesGenerator(CachingGenerator):
             signals.article_generator_write_article.send(self, content=article)
             write(article.save_as, self.get_template(article.template),
                   self.context, article=article, category=article.category,
-                  override_output=hasattr(article, 'override_save_as'))
+                  override_output=hasattr(article, 'override_save_as'),
+                  blog=True)
 
     def generate_period_archives(self, write):
         """Generate per-year, per-month, and per-day archives."""
@@ -432,7 +434,7 @@ class ArticlesGenerator(CachingGenerator):
             dates = [article for article in self.dates if article in articles]
             write(tag.save_as, tag_template, self.context, tag=tag,
                   articles=articles, dates=dates,
-                  paginated={'articles': articles, 'dates': dates},
+                  paginated={'articles': articles, 'dates': dates}, blog=True,
                   page_name=tag.page_name, all_articles=self.articles)
 
     def generate_categories(self, write):
@@ -443,7 +445,7 @@ class ArticlesGenerator(CachingGenerator):
             dates = [article for article in self.dates if article in articles]
             write(cat.save_as, category_template, self.context,
                   category=cat, articles=articles, dates=dates,
-                  paginated={'articles': articles, 'dates': dates},
+                  paginated={'articles': articles, 'dates': dates}, blog=True,
                   page_name=cat.page_name, all_articles=self.articles)
 
     def generate_authors(self, write):
@@ -454,7 +456,7 @@ class ArticlesGenerator(CachingGenerator):
             dates = [article for article in self.dates if article in articles]
             write(aut.save_as, author_template, self.context,
                   author=aut, articles=articles, dates=dates,
-                  paginated={'articles': articles, 'dates': dates},
+                  paginated={'articles': articles, 'dates': dates}, blog=True,
                   page_name=aut.page_name, all_articles=self.articles)
 
     def generate_drafts(self, write):
@@ -463,7 +465,7 @@ class ArticlesGenerator(CachingGenerator):
             write(draft.save_as, self.get_template(draft.template),
                 self.context, article=draft, category=draft.category,
                 override_output=hasattr(draft, 'override_save_as'),
-                all_articles=self.articles)
+                blog=True, all_articles=self.articles)
 
     def generate_pages(self, writer):
         """Generate the pages on the disk"""
@@ -524,6 +526,7 @@ class ArticlesGenerator(CachingGenerator):
                     preread_sender=self,
                     context_signal=signals.article_generator_context,
                     context_sender=self)
+                self.add_source_path(draft)
                 all_drafts.append(draft)
             else:
                 logger.error("Unknown status '%s' for file %s, skipping it.",
@@ -543,10 +546,8 @@ class ArticlesGenerator(CachingGenerator):
             if hasattr(article, 'tags'):
                 for tag in article.tags:
                     self.tags[tag].append(article)
-            # ignore blank authors as well as undefined
             for author in getattr(article, 'authors', []):
-                if author.name != '':
-                    self.authors[author].append(article)
+                self.authors[author].append(article)
         # sort the articles by date
         self.articles.sort(key=attrgetter('date'), reverse=True)
         self.dates = list(self.articles)
@@ -641,9 +642,9 @@ class PagesGenerator(CachingGenerator):
 
             self.add_source_path(page)
 
-            if page.status == "published":
+            if page.status.lower() == "published":
                 all_pages.append(page)
-            elif page.status == "hidden":
+            elif page.status.lower() == "hidden":
                 hidden_pages.append(page)
             else:
                 logger.error("Unknown status '%s' for file %s, skipping it.",

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function
 import six
-from six.moves.urllib.parse import (unquote, urlparse, urlunparse)
+from six.moves.urllib.parse import urlparse, urlunparse
 
 import copy
 import locale
@@ -17,7 +17,7 @@ from pelican import signals
 from pelican.settings import DEFAULT_CONFIG
 from pelican.utils import (slugify, truncate_html_words, memoized, strftime,
                            python_2_unicode_compatible, deprecated_attribute,
-                           path_to_url, set_date_tzinfo, SafeDatetime)
+                           path_to_url, posixize_path, set_date_tzinfo, SafeDatetime)
 
 # Import these so that they're avalaible when you import from pelican.contents.
 from pelican.urlwrappers import (URLWrapper, Author, Category, Tag)  # NOQA
@@ -53,7 +53,7 @@ class Content(object):
         self._context = context
         self.translations = []
 
-        local_metadata = dict(settings['DEFAULT_METADATA'])
+        local_metadata = dict()
         local_metadata.update(metadata)
 
         # set metadata as attributes
@@ -90,7 +90,7 @@ class Content(object):
 
             self.in_default_lang = (self.lang == default_lang)
 
-        # create the slug if not existing, generate slug according to 
+        # create the slug if not existing, generate slug according to
         # setting of SLUG_ATTRIBUTE
         if not hasattr(self, 'slug'):
             if settings['SLUGIFY_SOURCE'] == 'title' and hasattr(self, 'title'):
@@ -168,23 +168,13 @@ class Content(object):
         """Returns the URL, formatted with the proper values"""
         metadata = copy.copy(self.metadata)
         path = self.metadata.get('path', self.get_relative_source_path())
-        default_category = self.settings['DEFAULT_CATEGORY']
-        slug_substitutions = self.settings.get('SLUG_SUBSTITUTIONS', ())
         metadata.update({
             'path': path_to_url(path),
             'slug': getattr(self, 'slug', ''),
             'lang': getattr(self, 'lang', 'en'),
             'date': getattr(self, 'date', SafeDatetime.now()),
-            'author': slugify(
-                getattr(self, 'author', ''),
-                slug_substitutions,
-                self.settings['ALLOW_NON_ASCII_IN_SLUG']
-            ),
-            'category': slugify(
-                getattr(self, 'category', default_category),
-                slug_substitutions,
-                self.settings['ALLOW_NON_ASCII_IN_SLUG']
-            )
+            'author': self.author.slug if hasattr(self, 'author') else '',
+            'category': self.category.slug if hasattr(self, 'category') else ''
         })
         return metadata
 
@@ -320,8 +310,13 @@ class Content(object):
         """Dummy function"""
         pass
 
-    url = property(functools.partial(get_url_setting, key='url'))
-    save_as = property(functools.partial(get_url_setting, key='save_as'))
+    @property
+    def url(self):
+        return self.get_url_setting('url')
+
+    @property
+    def save_as(self):
+        return self.get_url_setting('save_as')
 
     def _get_template(self):
         if hasattr(self, 'template') and self.template is not None:
@@ -341,17 +336,19 @@ class Content(object):
         if source_path is None:
             return None
 
-        return os.path.relpath(
-            os.path.abspath(os.path.join(self.settings['PATH'], source_path)),
-            os.path.abspath(self.settings['PATH'])
-        )
+        return posixize_path(
+            os.path.relpath(
+                os.path.abspath(os.path.join(self.settings['PATH'], source_path)),
+                os.path.abspath(self.settings['PATH'])
+            ))
 
     @property
     def relative_dir(self):
-        return os.path.dirname(os.path.relpath(
-            os.path.abspath(self.source_path),
-            os.path.abspath(self.settings['PATH']))
-        )
+        return posixize_path(
+            os.path.dirname(
+                os.path.relpath(
+                    os.path.abspath(self.source_path),
+                    os.path.abspath(self.settings['PATH']))))
 
 
 class Page(Content):

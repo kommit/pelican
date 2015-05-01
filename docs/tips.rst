@@ -3,6 +3,32 @@ Tips
 
 Here are some tips about Pelican that you might find useful.
 
+Custom 404 Pages
+================
+
+When a browser requests a resource that the web server cannot find, the web
+server usually displays a generic "File not found" (404) error page that can be
+stark and unsightly. One way to provide an error page that matches the theme
+of your site is to create a custom 404 page, such as this Markdown-formatted
+example::
+
+    Title: Not Found
+    Status: hidden
+    Save_as: 404.html
+
+    The requested item could not be located. Perhaps you might want to check
+    the [Archives](/archives.html)?
+
+The next step is to configure your web server to display this custom page
+instead of its default 404 page. For Nginx, add the following to your
+configuration file's ``location`` block::
+
+    error_page 404 /404.html;
+
+For Apache::
+
+    ErrorDocument 404 /404.html
+
 Publishing to GitHub
 ====================
 
@@ -36,9 +62,15 @@ already exist). The ``git push origin gh-pages`` command updates the remote
 ``gh-pages`` branch, effectively publishing the Pelican site.
 
 .. note::
+    The ``github`` target of the Makefile (and the ``gh_pages`` task of the Fabfile)
+    created by the ``pelican-quickstart`` command
+    publishes the Pelican site as Project Pages, as described above.
 
-    The ``github`` target of the Makefile created by the ``pelican-quickstart``
-    command publishes the Pelican site as Project Pages, as described above.
+.. note:: ghp-import on Windows
+
+    Until `ghp-import Pull Request #25 <https://github.com/davisp/ghp-import/pull/25>`_
+    is accepted, you will need to install a custom build of ghp-import:
+    ``pip install https://github.com/chevah/ghp-import/archive/win-support.zip``
 
 User Pages
 ----------
@@ -61,6 +93,12 @@ by the ``ghp-import`` command) to the ``elemoine.github.io`` repository's
 
     To publish your Pelican site as User Pages, feel free to adjust the
     ``github`` target of the Makefile.
+
+Custom 404 Pages
+----------------
+
+GitHub Pages will display the custom 404 page described above, as noted in the
+relevant `GitHub docs <https://help.github.com/articles/custom-404-pages/>`_.
 
 Extra Tips
 ----------
@@ -86,6 +124,12 @@ output directory. For example::
     STATIC_PATHS = ['images', 'extra/CNAME']
     EXTRA_PATH_METADATA = {'extra/CNAME': {'path': 'CNAME'},}
 
+Note: use forward slashes, ``/``, even on Windows.
+
+.. hint::
+    You can also use the ``EXTRA_PATH_METADATA`` mechanism
+    to place a ``favicon.ico`` or ``robots.txt`` at the root of any site.
+
 How to add YouTube or Vimeo Videos
 ==================================
 
@@ -99,3 +143,4 @@ Moreover, markup languages like reST and Markdown have plugins that let you
 embed videos in the markup. You can use `reST video directive
 <https://gist.github.com/dbrgn/2922648>`_ for reST or `mdx_video plugin
 <https://github.com/italomaia/mdx-video>`_ for Markdown.
+

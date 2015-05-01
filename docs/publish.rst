@@ -65,7 +65,7 @@ The steps for deploying your site will depend on where it will be hosted.
 If you have SSH access to a server running Nginx or Apache, you might use the
 ``rsync`` tool to transmit your site files::
 
-    rsync --avc --delete output/ host.example.com:/var/www/your-site/
+    rsync -avc --delete output/ host.example.com:/var/www/your-site/
 
 There are many other deployment options, some of which can be configured when
 first setting up your site via the ``pelican-quickstart`` command. See the
@@ -99,6 +99,18 @@ separately. Use the following command to install Fabric, prefixing with
 ``sudo`` if your environment requires it::
 
     pip install Fabric
+
+.. note:: Installing PyCrypto on Windows
+
+    Fabric depends upon PyCrypto_, which is tricky to install
+    if your system doesn't have a C compiler.
+    For Windows users, before installing Fabric, use
+    ``easy_install http://www.voidspace.org.uk/downloads/pycrypto26/pycrypto-2.6.win32-py2.7.exe``
+    per this `StackOverflow suggestion <http://stackoverflow.com/a/11405769/6364>`_
+    You're more likely to have success
+    with the Win32 versions of Python 2.7 and PyCrypto,
+    than with the Win64—\
+    even if your operating system is a 64-bit version of Windows.
 
 Take a moment to open the ``fabfile.py`` file that was generated in your
 project root. You will see a number of commands, any one of which can be
@@ -179,3 +191,4 @@ executables, such as ``python3``, you can set the ``PY`` and ``PELICAN``
 environment variables, respectively, to override the default executable names.)
 
 .. _Fabric: http://fabfile.org/
+.. _PyCrypto: http://pycrypto.org
